@@ -1,99 +1,137 @@
-import React, { Component } from 'react';
-import {
-  AppRegistry,
-  StyleSheet,
-  Text,
-  View,
-  Image
-} from 'react-native';
 
-import TabNavigator from 'react-native-tab-navigator'
+import React, {Component} from 'react'
+
+import {
+    StyleSheet,
+    Text,
+    Navigator,
+    Image,
+    View,
+    DeviceEventEmitter
+} from 'react-native';
+import TabNavigator from 'react-native-tab-navigator';
+import PopularPage from './PopularPage'
+import TrendingPage from './TrendingPage'
+import FavoritePage from './FavoritePage'
+import MyPage from './my/MyPage'
+import Toast, {DURATION} from 'react-native-easy-toast'
+export const ACTION_HOME={
+    A_SHOW_TOAST: 'showToast', 
+    A_RESETART: 'restart',
+    A_THEME: 'theme'
+}
+export const FLAG_TAB={
+    flag_popularTab: 'tb_popular',
+    flag_trendingTab: 'tb_trending',
+    flag_favoriteTab: 'tb_favorite',
+    flag_my: 'tb_my'
+}
+import codePush from 'react-native-code-push'
 
 export default class HomePage extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      selectedTab: 'tb_popular',
+    constructor(props) {
+        super(props);
+        let selectedTab = this.props.selectedTab? this.props.selectedTab : 'tb_popular';
+        this.state = {
+            selectedTab: selectedTab,
+            theme: this.props.theme,
+        }
+    };
+
+    //向CodePush服务器检查更新
+    // update() {
+    //     codePush.sync({
+    //         updateDialog: {
+    //             appendReleaseDescription: true,
+    //             descriptionPrefix: '更新内容',
+    //             title: '更新',
+    //             mandatoryUpdateMessage: '',
+    //             mandatoryContinueButtonLabel: '更新',
+    //         },
+    //         mandatoryInstallMode: codePush.InstallMode.ON_NEXT_RESTART,
+    //     });
+    // }
+
+    // componentDidMount() {
+    //     super.componentDidMount();
+    //     // this.listener = DeviceEventEmitter.addListener('ACTION_HOME', (action,params) => this.onAction(action,params));
+    //     // this.update();
+    // };
+
+    //通知回调时间处理
+    onAction() {
+        if(ACTION_HOME.A_RESETART === action) {
+            this.onRestart(params)
+        } else if (ACTION_HOME.A_SHOW_TOAST === action) {
+            this.toast.show(params.text, DURATION.LENGTH_LONG)
+        }
     }
-  }
-  render() {
-    return (
-      <View style={styles.container}>
-        <TabNavigator>
-          <TabNavigator.Item
-            selected={this.state.selectedTab === 'tb_popular'}
-            selectedTitleStyle={{ color: 'brown' }}
-            title="最热"
-            renderIcon={() => <Image style={styles.tabBarIcon} source={require('../../res/images/ic_polular.png')} />}
-            renderSelectedIcon={() => <Image style={[styles.tabBarIcon, { tintColor: 'brown' }]} source={require('../../res/images/ic_polular.png')} />}
-            badgeText="1"
-            onPress={() => this.setState({ selectedTab: 'tb_popular' })}>
-            <View style={styles.page1}>
 
-            </View>
-          </TabNavigator.Item>
-          <TabNavigator.Item
-            selected={this.state.selectedTab === 'tb_trending'}
-            selectedTitleStyle={{ color: 'brown' }}
-            title="趋势"
-            renderIcon={() => <Image style={styles.tabBarIcon} source={require('../../res/images/ic_trending.png')} />}
-            renderSelectedIcon={() => <Image style={[styles.tabBarIcon, { tintColor: 'brown' }]} source={require('../../res/images/ic_trending.png')} />}
-            onPress={() => this.setState({ selectedTab: 'tb_trending' })}>
-            <View style={styles.page2}>
+    // componentWillUnMount() {
+    //     super.componentWillUnMount()
+    //     if (this.listener) {
+    //         this.listener.remove();
+    //     }
+    // }
 
-            </View>
-          </TabNavigator.Item>
-          <TabNavigator.Item
-            selected={this.state.selectedTab === 'tb_favorite'}
-            selectedTitleStyle={{ color: 'brown' }}
-            title="收藏"
-            renderIcon={() => <Image style={styles.tabBarIcon} source={require('../../res/images/ic_trending.png')} />}
-            renderSelectedIcon={() => <Image style={[styles.tabBarIcon, { tintColor: 'brown' }]} source={require('../../res/images/ic_trending.png')} />}
-            onPress={() => this.setState({ selectedTab: 'tb_favorite' })}>
-            <View style={styles.page3}>
+    //重启首页
+    //jumpToTab 默认显示的页面
+    onRestart(jumpToTab) {
+        this.props.navigator.resetTo({
+            component: HomePage,
+            params: {
+                ...this.props,
+                selectedTab: jumpToTab
+            }
+        })
+    }
 
-            </View>
-          </TabNavigator.Item>
-          <TabNavigator.Item
-            selected={this.state.selectedTab === 'tb_my'}
-            selectedTitleStyle={{ color: 'brown' }}
-            title="我的"
-            renderIcon={() => <Image style={styles.tabBarIcon} source={require('../../res/images/ic_trending.png')} />}
-            renderSelectedIcon={() => <Image style={[styles.tabBarIcon, { tintColor: 'brown' }]} source={require('../../res/images/ic_trending.png')} />}
-            onPress={() => this.setState({ selectedTab: 'tb_my' })}>
-            <View style={styles.page4}>
+    _renderTab(Component, selectedTab, title, renderIcon) {
+        return (
+            <TabNavigator.Item
+                selected={
+                    this.state.selectedTab === selectedTab
+                    }
+                /*selectedTitleStyle={this.state.theme.styles.selectedTitleStyle}*/
+                selectedTitleStyle={styles.selectedStyle}
+                title={title}
+                renderIcon={ () => <Image 
+                /*style={[styles.image, this.state.theme.styles.tabBarSelectedIcon]} */
+                style={styles.image} 
+                source={renderIcon}
+                />
+                }
+                onPress={() => this.setState({selectedTab: selectedTab})}
+            >
+            <Component {...this.props} theme={this.state.theme}/>
+            </TabNavigator.Item>
+        )
+    }
 
+    render() {
+        return (
+            <View style={styles.container}>
+                <TabNavigator>
+                    {this._renderTab(PopularPage, 'tb_popular', '最热', require('../../res/images/ic_polular.png'))}
+                    {this._renderTab(TrendingPage, 'tb_trending', '趋势', require('../../res/images/ic_trending.png'))}
+                    {this._renderTab(FavoritePage, 'tb_favorite', '收藏', require('../../res/images/ic_favorite.png'))}
+                    {this._renderTab(MyPage, 'tb_my', '我的', require('../../res/images/ic_my.png'))}
+                </TabNavigator>
+                <Toast ref={(toast) => this.toast=toast}></Toast>
             </View>
-          </TabNavigator.Item>
-        </TabNavigator>
-      </View>
-    );
-  }
+        );
+    }
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: '#F5FCFF',
+    flex: 1
   },
-  page1: {
-    flex: 1,
-    backgroundColor: 'brown'
+  image: {
+    height: 26,
+    width: 26,
   },
-  page2: {
-    flex: 1,
-    backgroundColor: 'green'
-  },
-  page3: {
-    flex: 1,
-    backgroundColor: 'pink'
-  },
-  page4: {
-    flex: 1,
-    backgroundColor: 'gray'
-  },
-  tabBarIcon: {
-    height: 22,
-    width: 22,
+  selectedStyle: {
+      backgroundColor: '#FDFDFD'
   }
 });
